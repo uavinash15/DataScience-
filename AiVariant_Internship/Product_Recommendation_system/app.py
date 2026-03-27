@@ -30,7 +30,7 @@ with st.spinner("Loading models... please wait"):
 
 product_id_to_index = artifacts['product_id_to_index']
 index_to_product_id = artifacts['index_to_product_id']
-item_user_matrix    = artifacts['item_user_matrix']   # shape: (34044 items x 61129 users)
+item_user_matrix    = artifacts['item_similarity_matrix']   # shape: (34044 items x 61129 users)
 sampled_df          = artifacts['sampled_df']
 
 # ─── Helper Functions ─────────────────────────────────────────────────────────
