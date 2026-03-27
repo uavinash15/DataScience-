@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import pickle
 import numpy as np
@@ -15,10 +16,13 @@ st.set_page_config(
 # ─── Load Artifacts (cached — runs only once per session) ─────────────────────
 @st.cache_resource
 def load_artifacts():
-    with open('recommendation_artifacts.pkl', 'rb') as f:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    with open(os.path.join(base_dir, 'recommendation_artifacts.pkl'), 'rb') as f:
         arts = pickle.load(f)
-    # Load sparse matrix only — do NOT compute full similarity here (8.64 GB!)
-    arts['item_user_matrix'] = load_npz('train_item_user_matrix.npz')
+
+    item_user_matrix = load_npz(os.path.join(base_dir, 'train_item_user_matrix.npz'))
+    arts['item_similarity_matrix'] = item_user_matrix
     return arts
 
 with st.spinner("Loading models... please wait"):
