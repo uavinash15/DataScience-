@@ -13,7 +13,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# ─── Load Artifacts (cached — runs only once per session) ─────────────────────
+# ─── Load Artifacts (cached — runs only once per session) ─────────────────────st.sidebar.markdown("Built by **Avinash** | ExcelR Data Science Programme")
 @st.cache_resource
 def load_artifacts():
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -87,10 +87,10 @@ st.sidebar.markdown("""
 (Highest Silhouette Score)
 """)
 st.sidebar.markdown("---")
-st.sidebar.markdown("Built by **Avinash** | ExcelR Data Science Programme")
+st.sidebar.markdown("Built by **Avinash** | Ai Variant")
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Try these sample Product IDs:**")
-for pid in ['B0074BW614', 'B00004NKIQ', 'B000QUUFRW', 'B001TH7GUU']:
+for pid in ['B0074BW614', '0972683275', 'B000QUUFRW', 'B001TH7GUU']:
     st.sidebar.code(pid)
 
 # ─── Main UI ──────────────────────────────────────────────────────────────────
