@@ -90,7 +90,7 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("Built by **Avinash** | Ai Variant")
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Try these sample Product IDs:**")
-for pid in ['B0074BW614', '0972683275', 'B000QUUFRW', 'B001TH7GUU']:
+for pid in ['B0074BW614', 'B000001OM5', 'B000QUUFRW', 'B001TH7GUU']:
     st.sidebar.code(pid)
 
 # ─── Main UI ──────────────────────────────────────────────────────────────────
