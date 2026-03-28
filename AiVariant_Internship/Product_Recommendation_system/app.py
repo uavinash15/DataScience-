@@ -120,8 +120,7 @@ with col2:
             st.warning("Please enter a Product ID.")
 
         elif pid not in product_id_to_index:
-            st.error(f"Product ID `{pid}` not found in the dataset.")
-            st.info("Try one of the sample IDs from the sidebar.")
+            st.error(f"❌ Product ID `{pid}` not found in the dataset. Please try one of the sample IDs from the sidebar.")
 
         else:
             st.subheader(f"Results for: `{pid}`")
@@ -141,8 +140,7 @@ with col2:
             elif cluster_label == -1:
                 st.warning("This product was classified as noise by DBSCAN (not in any cluster).")
             else:
-                st.info("Cluster info not available — product not in DBSCAN sampled data.")
-
+                st.info("ℹ️ This product has recommendations but was not included in the DBSCAN clustering sample. Showing similarity results only.")
             # Recommendations
             st.subheader("Similar Products (Item-Item CF)")
             with st.spinner("Computing recommendations..."):
@@ -157,7 +155,7 @@ with col2:
                 )
                 st.caption(f"Showing {len(recs)} recommendation(s) with similarity >= {threshold}")
             else:
-                st.warning("No recommendations found. Try lowering the Similarity Threshold to 0.0.")
+                st.warning("⚠️ No similar products found. Try lowering the Similarity Threshold to 0.0 and search again.")
 
     else:
         st.info("Enter a Product ID on the left and click Get Recommendations.")
