@@ -62,10 +62,13 @@ def get_cluster_info(product_id):
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 st.sidebar.title("About")
 st.sidebar.markdown("**Project:** P655 — Product Recommendation System")
-st.sidebar.markdown("Built by **Avinash** | ExcelR Data Science Programme")
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Sample Product IDs (similarity ≥ 0.7):**")
 for pid in ['B00004HYS6', 'B00004R8VM', 'B00004SDFI', 'B00000K2YR']:
+    st.sidebar.code(pid)
+
+st.sidebar.markdown("**Sample Product IDs:**")
+for pid in ['B0074BW614', 'B000001OM5', 'B000QUUFRW', 'B001TH7GUU']:
     st.sidebar.code(pid)
 
 # ─── Main UI ──────────────────────────────────────────────────────────────────
