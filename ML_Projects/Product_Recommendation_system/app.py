@@ -13,14 +13,12 @@ st.set_page_config(
     layout="wide"
 )
 
-# ─── Load Artifacts (cached — runs only once per session) ─────────────────────st.sidebar.markdown("Built by **Avinash** | ExcelR Data Science Programme")
+# ─── Load Artifacts (cached — runs only once per session) ─────────────────────
 @st.cache_resource
 def load_artifacts():
     base_dir = os.path.dirname(os.path.abspath(__file__))
-
     with open(os.path.join(base_dir, 'recommendation_artifacts.pkl'), 'rb') as f:
         arts = pickle.load(f)
-
     item_user_matrix = load_npz(os.path.join(base_dir, 'train_item_user_matrix.npz'))
     arts['item_similarity_matrix'] = item_user_matrix
     return arts
@@ -30,29 +28,17 @@ with st.spinner("Loading models... please wait"):
 
 product_id_to_index = artifacts['product_id_to_index']
 index_to_product_id = artifacts['index_to_product_id']
-item_user_matrix    = artifacts['item_similarity_matrix']   # shape: (34044 items x 61129 users)
+item_user_matrix    = artifacts['item_similarity_matrix']
 sampled_df          = artifacts['sampled_df']
 
 # ─── Helper Functions ─────────────────────────────────────────────────────────
 def get_item_recommendations(target_product_id, k=5, similarity_threshold=0.0):
-    """
-    Computes cosine similarity for ONE product row against all others.
-    Uses ~2MB of RAM instead of 8.64GB (no full matrix precomputation).
-    """
     if target_product_id not in product_id_to_index:
         return [], []
-
     target_idx = product_id_to_index[target_product_id]
-
-    # Extract just the single row for the target product (shape: 1 x n_users)
     target_vector = item_user_matrix[target_idx]
-
-    # Compute similarity of this 1 product vs all 34044 products
-    # Result shape: (1, 34044) — lightweight and fast
     similarity_scores = cosine_similarity(target_vector, item_user_matrix).flatten()
-
     similar_indices = np.argsort(similarity_scores)[::-1]
-
     recommendations = []
     scores = []
     for idx in similar_indices:
@@ -75,22 +61,11 @@ def get_cluster_info(product_id):
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 st.sidebar.title("About")
-st.sidebar.markdown("""
-**Project:** P655 — Product Recommendation System
-
-**Technique:** Item-Item Collaborative Filtering
-**Clustering:** Tuned DBSCAN (eps=1.0, min_samples=5)
-**Dataset:** rating_short.csv
-(76K users x 40K products)
-
-**Best Model:** Tuned DBSCAN
-(Highest Silhouette Score)
-""")
+st.sidebar.markdown("**Project:** P655 — Product Recommendation System")
+st.sidebar.markdown("Built by **Avinash** | ExcelR Data Science Programme")
 st.sidebar.markdown("---")
-#st.sidebar.markdown("Built by **Avinash** | Ai Variant")
-st.sidebar.markdown("---")
-st.sidebar.markdown("**Try these sample Product IDs:**")
-for pid in ['B0074BW614', 'B000001OM5', 'B000QUUFRW', 'B001TH7GUU']:
+st.sidebar.markdown("**Sample Product IDs (similarity ≥ 0.7):**")
+for pid in ['B00004HYS6', 'B00004R8VM', 'B00004SDFI', 'B00000K2YR']:
     st.sidebar.code(pid)
 
 # ─── Main UI ──────────────────────────────────────────────────────────────────
@@ -102,7 +77,7 @@ col1, col2 = st.columns([1, 2])
 
 with col1:
     st.subheader("Search")
-    product_input = st.text_input("Enter Product ID", placeholder="e.g. B0074BW614")
+    product_input = st.text_input("Enter Product ID", placeholder="e.g. B00004HYS6")
     num_recs  = st.slider("Number of Recommendations", min_value=1, max_value=20, value=5)
     threshold = st.select_slider(
         "Similarity Threshold",
@@ -120,7 +95,7 @@ with col2:
             st.warning("Please enter a Product ID.")
 
         elif pid not in product_id_to_index:
-            st.error(f"❌ Product ID `{pid}` not found in the dataset. Please try one of the sample IDs from the sidebar.")
+            st.error(f"Product ID `{pid}` not found in the dataset. Please try one of the sample IDs from the sidebar.")
 
         else:
             st.subheader(f"Results for: `{pid}`")
@@ -140,7 +115,8 @@ with col2:
             elif cluster_label == -1:
                 st.warning("This product was classified as noise by DBSCAN (not in any cluster).")
             else:
-                st.info("ℹ️ This product has recommendations but was not included in the DBSCAN clustering sample. Showing similarity results only.")
+                st.info("This product has recommendations but was not included in the DBSCAN clustering sample. Showing similarity results only.")
+
             # Recommendations
             st.subheader("Similar Products (Item-Item CF)")
             with st.spinner("Computing recommendations..."):
@@ -155,7 +131,7 @@ with col2:
                 )
                 st.caption(f"Showing {len(recs)} recommendation(s) with similarity >= {threshold}")
             else:
-                st.warning("⚠️ No similar products found. Try lowering the Similarity Threshold to 0.0 and search again.")
+                st.warning("No similar products found. Try lowering the Similarity Threshold to 0.0 and search again.")
 
     else:
         st.info("Enter a Product ID on the left and click Get Recommendations.")
