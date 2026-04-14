@@ -154,7 +154,7 @@ Product-Recommendation-System/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/<your-username>/Product-Recommendation-System.git
+git clone https://github.com/uavinash15/Product-Recommendation-System.git
 cd Product-Recommendation-System
 ```
 
