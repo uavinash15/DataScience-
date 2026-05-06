@@ -65,7 +65,7 @@ def load_assets():
 # HEADER
 # ─────────────────────────────────────────────
 st.markdown('<div class="main-title">📈 Apple (AAPL) Stock Price Forecaster</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title">GRU Deep Learning Model · 30-Day Forecast · P668 Project by Avinash</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">GRU Deep Learning Model · 30-Day Forecast</div>', unsafe_allow_html=True)
 st.divider()
 
 # ─────────────────────────────────────────────
@@ -142,7 +142,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.success(f"✅ Model loaded from `assets/`\n\nNo retraining needed!")
-    st.caption(f"**Model:** GRU (ONNX format)\n**Data:** {len(apple_df_cleaned):,} trading days\n**Project:** P668 — Avinash")
+    st.caption(f"**Model:** GRU (ONNX format)\n**Data:** {len(apple_df_cleaned):,} trading days")
 
 # ─────────────────────────────────────────────
 # HELPER FUNCTIONS
@@ -409,4 +409,4 @@ Treat this as a **directional trend indicator**, not an exact price target.
     )
 
     st.markdown("---")
-    st.caption("📌 P668 Project — Apple Stock Price Prediction | GRU Deep Learning Model (ONNX) | For academic purposes only")
+    st.caption("📌 Apple Stock Price Prediction | GRU Deep Learning Model (ONNX) | For academic purposes only")
