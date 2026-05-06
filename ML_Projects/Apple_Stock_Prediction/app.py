@@ -8,7 +8,7 @@ import os
 import warnings
 warnings.filterwarnings('ignore')
 
-from tensorflow.keras.models import load_model
+import onnxruntime as ort
 
 # ─────────────────────────────────────────────
 # PAGE CONFIG
@@ -34,8 +34,10 @@ st.markdown("""
 # ─────────────────────────────────────────────
 # ASSET PATHS
 # ─────────────────────────────────────────────
-ASSETS_DIR   = "assets"
-MODEL_PATH   = os.path.join(ASSETS_DIR, "final_gru_model.keras")
+# Resolve paths relative to this script's location
+SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
+ASSETS_DIR   = os.path.join(SCRIPT_DIR, "assets")
+MODEL_PATH   = os.path.join(ASSETS_DIR, "final_gru_model.onnx")
 SCALER_PATH  = os.path.join(ASSETS_DIR, "final_scaler_gru.pkl")
 DATA_PATH    = os.path.join(ASSETS_DIR, "apple_df_cleaned.pkl")
 
@@ -44,7 +46,7 @@ DATA_PATH    = os.path.join(ASSETS_DIR, "apple_df_cleaned.pkl")
 # ─────────────────────────────────────────────
 @st.cache_resource(show_spinner=False)
 def load_assets():
-    """Load pre-trained model, scaler, and cleaned dataframe from disk."""
+    """Load pre-trained ONNX model, scaler, and cleaned dataframe from disk."""
     missing = []
     for p in [MODEL_PATH, SCALER_PATH, DATA_PATH]:
         if not os.path.exists(p):
@@ -52,25 +54,25 @@ def load_assets():
     if missing:
         return None, None, None, missing
 
-    model  = load_model(MODEL_PATH)
+    session = ort.InferenceSession(MODEL_PATH)
     with open(SCALER_PATH, 'rb') as f:
         scaler = pickle.load(f)
     df = pd.read_pickle(DATA_PATH)
-    return model, scaler, df, []
+    return session, scaler, df, []
 
 
 # ─────────────────────────────────────────────
 # HEADER
 # ─────────────────────────────────────────────
 st.markdown('<div class="main-title">📈 Apple (AAPL) Stock Price Forecaster</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title">GRU Deep Learning Model · 30-Day Recursive Forecast · P668 Project by Avinash</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">GRU Deep Learning Model · 30-Day Forecast · P668 Project by Avinash</div>', unsafe_allow_html=True)
 st.divider()
 
 # ─────────────────────────────────────────────
 # LOAD ASSETS
 # ─────────────────────────────────────────────
 with st.spinner("Loading pre-trained model and data..."):
-    gru_model, final_scaler_gru, apple_df_cleaned, missing_files = load_assets()
+    gru_session, final_scaler_gru, apple_df_cleaned, missing_files = load_assets()
 
 if missing_files:
     st.error("❌ Required asset files not found. Please make sure these files are in the `assets/` folder:")
@@ -83,7 +85,14 @@ Run this in your Google Colab notebook at the end:
 ```python
 import pickle, os
 os.makedirs('/content/streamlit_assets', exist_ok=True)
-final_gru_model.save('/content/streamlit_assets/final_gru_model.keras')
+
+# Save model as ONNX (requires: !pip install tf2onnx onnx)
+import tf2onnx, onnx, tensorflow as tf
+saved_model_path = "/content/streamlit_assets/temp_saved_model"
+final_gru_model.export(saved_model_path)
+!python -m tf2onnx.convert --saved-model {saved_model_path} --output /content/streamlit_assets/final_gru_model.onnx --opset 13
+
+# Save scaler and dataframe
 with open('/content/streamlit_assets/final_scaler_gru.pkl', 'wb') as f:
     pickle.dump(final_scaler_gru, f)
 apple_df_cleaned.to_pickle('/content/streamlit_assets/apple_df_cleaned.pkl')
@@ -133,7 +142,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.success(f"✅ Model loaded from `assets/`\n\nNo retraining needed!")
-    st.caption(f"**Model:** GRU (pre-trained)\n**Data:** {len(apple_df_cleaned):,} trading days\n**Project:** P668 — Avinash")
+    st.caption(f"**Model:** GRU (ONNX format)\n**Data:** {len(apple_df_cleaned):,} trading days\n**Project:** P668 — Avinash")
 
 # ─────────────────────────────────────────────
 # HELPER FUNCTIONS
@@ -227,6 +236,17 @@ def plot_forecast(df_clean, forecast_table, n_history=100):
 
 
 # ─────────────────────────────────────────────
+# ONNX PREDICTION HELPER
+# ─────────────────────────────────────────────
+def onnx_predict(session, input_data):
+    """Run prediction using ONNX runtime session."""
+    input_name = session.get_inputs()[0].name
+    input_data = input_data.astype(np.float32)
+    result = session.run(None, {input_name: input_data})
+    return result[0]
+
+
+# ─────────────────────────────────────────────
 # WELCOME SCREEN (before button click)
 # ─────────────────────────────────────────────
 if not run_btn:
@@ -240,7 +260,7 @@ if not run_btn:
 
     st.markdown("### About this app")
     st.markdown(f"""
-This app loads a **pre-trained GRU model** and generates a stock price forecast instantly.
+This app loads a **pre-trained GRU model** (ONNX format) and generates a stock price forecast instantly.
 
 | Detail | Value |
 |---|---|
@@ -248,6 +268,7 @@ This app loads a **pre-trained GRU model** and generates a stock price forecast 
 | Training data | {data_min} to {data_max} |
 | Total records | {len(apple_df_cleaned):,} trading days |
 | Model | GRU (2-layer, 100 units, dropout 0.2) |
+| Runtime | ONNX Runtime (lightweight, no TensorFlow needed) |
 | Forecast method | Recursive multi-step prediction |
 
 > ⚠️ For academic/educational purposes only. Not financial advice.
@@ -300,7 +321,7 @@ else:
 
         for _ in range(forecast_days):
             inp  = last_seq.reshape(1, time_steps, 1)
-            pred = gru_model.predict(inp, verbose=0)
+            pred = onnx_predict(gru_session, inp)
             preds_scaled.append(pred[0, 0])
             last_seq = np.append(last_seq[1:], pred[0, 0]).reshape(-1, 1)
 
@@ -358,7 +379,7 @@ Treat this as a **directional trend indicator**, not an exact price target.
 | Total expected change | {change_pct:+.2f}% |
 | Historical daily volatility (60d) | {hist_vol:.4f} |
 | Forecasted daily volatility | {fore_vol:.4f} |
-| Model | Pre-trained GRU · loaded from `assets/` |
+| Model | Pre-trained GRU · ONNX runtime · loaded from `assets/` |
 | Time steps | {time_steps} |
         """)
         if fore_vol > hist_vol * 2:
@@ -388,4 +409,4 @@ Treat this as a **directional trend indicator**, not an exact price target.
     )
 
     st.markdown("---")
-    st.caption("📌 P668 Project — Apple Stock Price Prediction | GRU Deep Learning Model | For academic purposes only")
+    st.caption("📌 P668 Project — Apple Stock Price Prediction | GRU Deep Learning Model (ONNX) | For academic purposes only")
