@@ -88,7 +88,7 @@ def load_assets():
 # ─────────────────────────────────────────────
 # HEADER
 # ─────────────────────────────────────────────
-st.markdown('<div class="main-title">📈 Apple (AAPL) Stock Price Forecaster</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title"><span style="-webkit-text-fill-color: initial; background: none;">📈</span> Apple (AAPL) Stock Price Forecaster</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-title">GRU Deep Learning Model · 30-Day Forecast · Powered by ONNX Runtime</div>', unsafe_allow_html=True)
 st.divider()
 
