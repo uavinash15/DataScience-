@@ -130,12 +130,8 @@ with st.sidebar:
     st.markdown("---")
     st.subheader("🔮 Forecast Settings")
     forecast_days = st.slider("Forecast horizon (days)", min_value=7, max_value=30, value=30, step=1)
-    time_steps    = st.selectbox(
-        "Time steps used during training",
-        [30, 60, 90],
-        index=1,
-        help="Must match the time_steps used when training the model in your notebook (default: 60)"
-    )
+    time_steps = 60  # Fixed — must match the model's training configuration
+    st.info(f"⏱️ **Time steps:** {time_steps} (fixed, matches trained model)")
 
     st.markdown("---")
     run_btn = st.button("🚀 Generate Forecast", type="primary", use_container_width=True)
