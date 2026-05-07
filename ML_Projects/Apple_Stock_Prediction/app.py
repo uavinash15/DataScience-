@@ -52,14 +52,15 @@ st.markdown("""
 # ─────────────────────────────────────────────
 SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
 ASSETS_DIR   = os.path.join(SCRIPT_DIR, "assets")
-MODEL_PATH   = os.path.join(ASSETS_DIR, "final_gru_model.onnx")
-SCALER_PATH  = os.path.join(ASSETS_DIR, "final_scaler_gru.pkl")
+MODEL_PATH   = os.path.join(ASSETS_DIR, "multistep_gru.onnx")
+SCALER_PATH  = os.path.join(ASSETS_DIR, "multistep_scaler.pkl")
 DATA_PATH    = os.path.join(ASSETS_DIR, "apple_df_cleaned.pkl")
 
 # ─────────────────────────────────────────────
 # MODEL CONFIGURATION & PERFORMANCE
 # ─────────────────────────────────────────────
-TIME_STEPS = 60  # Fixed — must match training configuration
+TIME_STEPS    = 60   # Fixed — must match training configuration
+OUTPUT_STEPS  = 30   # Model predicts 30 days at once (multi-step)
 MODEL_TEST_MAPE = 1.35
 MODEL_TEST_RMSE = 4.27
 MODEL_TEST_R2   = 0.9820
@@ -307,14 +308,16 @@ This app loads a **pre-trained GRU model** (ONNX format) and generates a stock p
 
 **How the forecast is generated:**
 1. The model looks at the **last 60 trading days** of stock prices
-2. It predicts the **next day's closing price**
-3. That prediction is fed back as input to predict the day after
-4. This process repeats for the selected forecast horizon (up to 30 days)
+2. It predicts **all 30 days at once** in a single forward pass (multi-step output)
+3. This avoids the "recursive drift" problem where errors accumulate day by day
 
 **Key model details:**
-- **Architecture:** 2 GRU layers (100 units each) with 20% dropout for regularization
+- **Architecture:** 2 GRU layers (100 units each) with 20% dropout, followed by a Dense(50) + Dense(30) output
 - **Training:** Trained on ~1,600 days of Apple stock data (2012–2018), validated on ~400 days (2018–2019)
 - **Optimization:** Hyperparameter-tuned across 7 experiments, best config selected by lowest MAPE
+
+**Why multi-step over recursive?**
+Recursive forecasting (predict 1 day → feed back → repeat) causes predictions to drift toward the mean over 30 days, producing unrealistic smooth curves. Multi-step prediction outputs all 30 days simultaneously, preserving natural price fluctuations.
 
 **Why GRU over LSTM?**
 GRU achieves comparable accuracy to LSTM but with fewer parameters, resulting in faster training and inference. In our experiments, GRU achieved the best MAPE (1.35%) among all 7 tested models.
@@ -359,8 +362,8 @@ else:
         p2.metric("Test RMSE", f"${MODEL_TEST_RMSE}")
         p3.metric("Test R²", f"{MODEL_TEST_R2}")
 
-    # ── Recursive Forecast ──
-    st.subheader("🔮 30-Day Forecast Results")  # Fix #8: changed from "Generating"
+    # ── Multi-Step Forecast (all days at once — no recursive drift) ──
+    st.subheader("🔮 30-Day Forecast Results")
 
     with st.spinner("Running forecast..."):
         close_vals  = apple_df_cleaned[['Close']].values
@@ -370,25 +373,27 @@ else:
             st.error(f"Not enough data ({len(scaled_data)} rows) for time_steps={TIME_STEPS}.")
             st.stop()
 
-        last_seq     = scaled_data[-TIME_STEPS:].copy()
-        preds_scaled = []
+        # Single prediction: 60 days in → 30 days out (no loop!)
+        last_60 = scaled_data[-TIME_STEPS:].reshape(1, TIME_STEPS, 1)
+        forecast_scaled = onnx_predict(gru_session, last_60)  # shape: (1, 30)
 
-        for _ in range(forecast_days):
-            inp  = last_seq.reshape(1, TIME_STEPS, 1)
-            pred = onnx_predict(gru_session, inp)
-            preds_scaled.append(pred[0, 0])
-            last_seq = np.append(last_seq[1:], pred[0, 0]).reshape(-1, 1)
-
+        # Inverse transform each predicted day back to dollar prices
+        forecast_scaled_flat = forecast_scaled.flatten()
         predictions = final_scaler_gru.inverse_transform(
-            np.array(preds_scaled).reshape(-1, 1)
+            forecast_scaled_flat.reshape(-1, 1)
         )
 
     last_date    = apple_df_cleaned.index[-1]
-    future_dates = pd.bdate_range(start=last_date + pd.Timedelta(days=1), periods=forecast_days)
+    future_dates = pd.bdate_range(start=last_date + pd.Timedelta(days=1), periods=OUTPUT_STEPS)
     forecast_df  = pd.DataFrame(
         {'Predicted Close ($)': predictions.flatten()},
         index=future_dates
     )
+
+    # If user selected fewer days, trim the table
+    if forecast_days < OUTPUT_STEPS:
+        forecast_df = forecast_df.iloc[:forecast_days]
+        future_dates = forecast_df.index
 
     st.success("✅ Forecast generated instantly from pre-trained model!")
 
