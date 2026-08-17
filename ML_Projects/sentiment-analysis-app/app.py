@@ -1,9 +1,14 @@
 import streamlit as st
 import joblib
+import os
+
+# Resolve paths relative to this script's own folder (fixes Streamlit Cloud
+# working-directory issues when app.py isn't at the repo root)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Load model and vectorizer
-model = joblib.load("best_sentiment_model.pkl")
-vectorizer = joblib.load("tfidf_vectorizer.pkl")
+model = joblib.load(os.path.join(BASE_DIR, "best_sentiment_model.pkl"))
+vectorizer = joblib.load(os.path.join(BASE_DIR, "tfidf_vectorizer.pkl"))
 
 # Page Config
 st.set_page_config(
